@@ -37,11 +37,7 @@ import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.security.AccessControlException;
 import java.text.MessageFormat;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.MissingResourceException;
-import java.util.ResourceBundle;
-import java.util.Set;
+import java.util.*;
 
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -123,7 +119,7 @@ public class HomePrintableComponent extends JComponent implements Printable {
   private final Font           headerFooterFont;
   private int                  page;
   private int                  pageCount = -1;
-  private Set<Integer>         printablePages = new HashSet<Integer>();
+  private Set<Integer> printablePages = new HashSet<Integer>();
   private int                  furniturePageCount;
   private int                  planPageCount;
   private Date                 printDate;
@@ -351,14 +347,12 @@ public class HomePrintableComponent extends JComponent implements Printable {
           && (homePrint == null
               || homePrint.isPlanPrinted()
               || homePrint.isView3DPrinted())) {
-        final Level selectedLevel = home.getSelectedLevel();
         furnitureTable = (FurnitureTable)furnitureView;
         furnitureFilter = furnitureTable.getFurnitureFilter();
         furnitureTable.setFurnitureFilter(new FurnitureTable.FurnitureFilter() {
             public boolean include(Home home, HomePieceOfFurniture piece) {
-              // Print only furniture at selected level when the plan or the 3D view is printed
+              // Print furniture on all viewable levels
               return (furnitureFilter == null || furnitureFilter.include(home, piece))
-                  && piece.isAtLevel(selectedLevel)
                   && (piece.getLevel() == null || piece.getLevel().isViewable());
             }
           });
@@ -380,16 +374,17 @@ public class HomePrintableComponent extends JComponent implements Printable {
     if (pageExists == NO_SUCH_PAGE 
         && planView != null 
         && (homePrint == null || homePrint.isPlanPrinted())) {
-      // Try to print next plan view page
-      pageExists = ((Printable)planView).print(g2D, pageFormat, page - this.furniturePageCount);
-      if (pageExists == PAGE_EXISTS
-          && !this.printablePages.contains(page)) {
+      pageExists = ((Printable)planView).print(g2D, pageFormat,
+              page - this.furniturePageCount);
+      if (pageExists == PAGE_EXISTS && !this.printablePages.contains(page)) {
         this.printablePages.add(page);
         this.planPageCount++;
       }
-    }
+      }
+
     View view3D = this.controller.getHomeController3D().getView();
-    if (pageExists == NO_SUCH_PAGE
+
+  if (pageExists == NO_SUCH_PAGE
         && view3D != null
         && (homePrint == null || homePrint.isView3DPrinted())) {
       pageExists = ((Printable)view3D).print(g2D, pageFormat, page - this.planPageCount - this.furniturePageCount);
